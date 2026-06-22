@@ -82,6 +82,11 @@
       <artifactId>drools-mvel</artifactId>
       <version>${drools.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.drools</groupId>
+      <artifactId>drools-xml-support</artifactId>
+      <version>${drools.version}</version>
+    </dependency>
 
     <!-- Test -->
     <dependency>
@@ -95,6 +100,11 @@
       <scope>test</scope>
     </dependency>
     <!-- In-memory connector for Kafka channels in component tests -->
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-reactive-messaging-in-memory</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

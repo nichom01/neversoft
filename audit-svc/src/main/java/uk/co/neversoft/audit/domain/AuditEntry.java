@@ -2,6 +2,8 @@ package uk.co.neversoft.audit.domain;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -24,6 +26,7 @@ public class AuditEntry extends PanacheEntityBase {
     @Column(name = "aggregate_id", nullable = false)
     public String aggregateId;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "raw_payload", columnDefinition = "jsonb", nullable = false)
     public String rawPayload;
 

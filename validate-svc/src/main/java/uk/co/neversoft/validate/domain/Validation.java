@@ -2,6 +2,8 @@ package uk.co.neversoft.validate.domain;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -25,6 +27,7 @@ public class Validation extends PanacheEntityBase {
     @Column(name = "failure_reason")
     public String failureReason;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "rules_applied", columnDefinition = "jsonb", nullable = false)
     public String rulesApplied;
 

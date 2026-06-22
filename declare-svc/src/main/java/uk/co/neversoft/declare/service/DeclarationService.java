@@ -55,8 +55,7 @@ public class DeclarationService {
         return new DeclarationResult(declaration.id, true);
     }
 
-    // package-private + static so OutboxPayloadTest can call it without CDI
-    static String buildEventPayload(UUID eventId, Declaration declaration) {
+    public static String buildEventPayload(UUID eventId, Declaration declaration) {
         try {
             var m = new ObjectMapper();
             m.findAndRegisterModules();
