@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.jboss.logging.Logger;
 import uk.co.neversoft.risk.domain.OutboxEntry;
 import uk.co.neversoft.risk.domain.RiskAssessment;
 import uk.co.neversoft.risk.messaging.ValidationCompletedEvent;
@@ -15,6 +16,8 @@ import java.util.UUID;
 
 @ApplicationScoped
 public class RiskService {
+
+    private static final Logger LOG = Logger.getLogger(RiskService.class);
 
     @Inject
     RiskScorer scorer;
@@ -51,6 +54,9 @@ public class RiskService {
         outbox.payload       = buildEventPayload(outbox.id, event, assessment);
         outbox.createdAt     = assessment.assessedAt;
         outbox.persist();
+
+        LOG.infof("risk.assessed declarationId=%s band=%s score=%.1f eventId=%s",
+                assessment.declarationId, assessment.band, assessment.score, outbox.id);
     }
 
     static String buildEventPayload(UUID eventId, ValidationCompletedEvent source, RiskAssessment assessment) {

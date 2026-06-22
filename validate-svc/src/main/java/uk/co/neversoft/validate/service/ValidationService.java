@@ -14,12 +14,16 @@ import uk.co.neversoft.validate.rules.CustomerFact;
 import uk.co.neversoft.validate.rules.DeclarationFact;
 import uk.co.neversoft.validate.rules.RuleEngineService;
 
+import org.jboss.logging.Logger;
+
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
 @ApplicationScoped
 public class ValidationService {
+
+    private static final Logger LOG = Logger.getLogger(ValidationService.class);
 
     @Inject
     RuleEngineService ruleEngine;
@@ -54,6 +58,9 @@ public class ValidationService {
         outbox.payload = buildEventPayload(outbox.id, event, validation);
         outbox.createdAt = validation.validatedAt;
         outbox.persist();
+
+        LOG.infof("validations.completed declarationId=%s outcome=%s eventId=%s",
+                validation.declarationId, validation.outcome, outbox.id);
     }
 
     private DeclarationFact runRules(UUID customerId) {

@@ -10,12 +10,16 @@ import uk.co.neversoft.declare.domain.Declaration;
 import uk.co.neversoft.declare.domain.DeclarationStatus;
 import uk.co.neversoft.declare.domain.OutboxEntry;
 
+import org.jboss.logging.Logger;
+
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
 @ApplicationScoped
 public class DeclarationService {
+
+    private static final Logger LOG = Logger.getLogger(DeclarationService.class);
 
     @Inject
     ObjectMapper mapper;
@@ -44,6 +48,9 @@ public class DeclarationService {
         outbox.payload = buildEventPayload(outbox.id, declaration);
         outbox.createdAt = declaration.createdAt;
         outbox.persist();
+
+        LOG.infof("declarations.created declarationId=%s customerId=%s eventId=%s",
+                declaration.id, declaration.customerId, outbox.id);
 
         return new DeclarationResult(declaration.id, true);
     }

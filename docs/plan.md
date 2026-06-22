@@ -268,7 +268,7 @@ Capture the decision in `docs/adr-001-kafka-client.md` before proceeding to Phas
 
 ---
 
-## Phase 8 — Native Image Build & Container Packaging
+## Phase 8 — Native Image Build & Container Packaging ✓ COMPLETE
 
 **Goal:** Each service builds as a GraalVM native image < 100MB.
 
@@ -292,7 +292,7 @@ Capture the decision in `docs/adr-001-kafka-client.md` before proceeding to Phas
 
 ---
 
-## Phase 9 — Observability
+## Phase 9 — Observability ✓ COMPLETE
 
 **Goal:** Structured JSON logs + Quarkus health endpoints on every service.
 
