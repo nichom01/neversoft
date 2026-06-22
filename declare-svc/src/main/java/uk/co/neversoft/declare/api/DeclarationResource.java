@@ -1,3 +1,4 @@
+// Quickstart Scenario 1: this comment is the change that triggers selective CI for declare-svc only.
 package uk.co.neversoft.declare.api;
 
 import jakarta.inject.Inject;

@@ -1,0 +1,93 @@
+name: Unit Tests
+
+on:
+  workflow_call:
+    inputs:
+      module:
+        description: "Module directory name (e.g. declare-svc)"
+        type: string
+        required: true
+      ref:
+        description: "Git ref to check out (branch, tag, or SHA). Defaults to triggering SHA."
+        type: string
+        default: ''
+    outputs:
+      status:
+        description: "'passed' or 'failed'"
+        value: ${{ jobs.test.outputs.status }}
+      tests_run:
+        description: "Total number of tests executed"
+        value: ${{ jobs.test.outputs.tests_run }}
+      tests_failed:
+        description: "Number of failed or errored tests"
+        value: ${{ jobs.test.outputs.tests_failed }}
+      duration_s:
+        description: "Wall-clock seconds for the test job"
+        value: ${{ jobs.test.outputs.duration_s }}
+
+jobs:
+  test:
+    name: Unit tests — ${{ inputs.module }}
+    runs-on: ubuntu-latest
+    outputs:
+      status:       ${{ steps.result.outputs.status }}
+      tests_run:    ${{ steps.result.outputs.tests_run }}
+      tests_failed: ${{ steps.result.outputs.tests_failed }}
+      duration_s:   ${{ steps.result.outputs.duration_s }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Start timer
+        run: echo "start=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Run unit tests — ${{ inputs.module }}
+        id: test
+        run: mvn -f "${{ inputs.module }}/pom.xml" test -B -q
+
+      - name: Parse Surefire results
+        id: surefire
+        if: always()
+        env:
+          MODULE: ${{ inputs.module }}
+        run: |
+          REPORT_DIR="${MODULE}/target/surefire-reports"
+          if ls "$REPORT_DIR"/TEST-*.xml >/dev/null 2>&1; then
+            TESTS_RUN=$(grep -h 'tests=' "$REPORT_DIR"/TEST-*.xml \
+              | grep -oE 'tests="[0-9]+"' | grep -oE '[0-9]+' \
+              | awk '{s+=$1} END {print s+0}')
+            FAILURES=$(grep -h 'failures=' "$REPORT_DIR"/TEST-*.xml \
+              | grep -oE 'failures="[0-9]+"' | grep -oE '[0-9]+' \
+              | awk '{s+=$1} END {print s+0}')
+            ERRORS=$(grep -h 'errors=' "$REPORT_DIR"/TEST-*.xml \
+              | grep -oE 'errors="[0-9]+"' | grep -oE '[0-9]+' \
+              | awk '{s+=$1} END {print s+0}')
+            TESTS_FAILED=$(( FAILURES + ERRORS ))
+          else
+            TESTS_RUN=0
+            TESTS_FAILED=0
+          fi
+          echo "tests_run=$TESTS_RUN"       >> "$GITHUB_ENV"
+          echo "tests_failed=$TESTS_FAILED" >> "$GITHUB_ENV"
+
+      - name: Record result
+        id: result
+        if: always()
+        run: |
+          DURATION=$(( $(date +%s) - ${{ env.start }} ))
+          if [ "${{ steps.test.outcome }}" = "success" ]; then
+            echo "status=passed" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+          fi
+          echo "tests_run=${{ env.tests_run }}"       >> "$GITHUB_OUTPUT"
+          echo "tests_failed=${{ env.tests_failed }}" >> "$GITHUB_OUTPUT"
+          echo "duration_s=$DURATION"                 >> "$GITHUB_OUTPUT"

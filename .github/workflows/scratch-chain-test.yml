@@ -1,0 +1,16 @@
+# Scratch workflow to validate that build-module.yml is independently callable
+# without a prior detect-changes.yml step.
+#
+# Usage: trigger manually from Actions → Scratch: Chain Composability Test → Run workflow
+# After confirming the build succeeds, DELETE this file.
+name: "Scratch: Chain Composability Test"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-standalone:
+    name: Build declare-svc (standalone, no detect step)
+    uses: ./.github/workflows/build-module.yml
+    with:
+      module: declare-svc

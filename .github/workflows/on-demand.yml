@@ -1,0 +1,93 @@
+name: On-Demand Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      modules:
+        description: "Modules to test: 'all' or comma-separated names (e.g. declare-svc,audit-svc)"
+        type: string
+        default: 'all'
+      ref:
+        description: "Branch name or SHA to test"
+        type: string
+        default: ${{ github.ref_name }}
+
+jobs:
+  # ── Stage 1: Resolve module scope from user input ─────────────────────────
+  detect:
+    name: Resolve module scope
+    uses: ./.github/workflows/detect-changes.yml
+    with:
+      modules: ${{ inputs.modules }}
+
+  # ── Stage 2: Build affected modules in parallel ───────────────────────────
+  build:
+    name: Build
+    needs: detect
+    if: needs.detect.outputs.has_buildable_changes == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.detect.outputs.affected_modules) }}
+    uses: ./.github/workflows/build-module.yml
+    with:
+      module: ${{ matrix.module }}
+      ref: ${{ inputs.ref }}
+
+  # ── Stage 3: Unit test affected modules in parallel ───────────────────────
+  unit-test:
+    name: Unit tests
+    needs: [detect, build]
+    if: needs.detect.outputs.has_buildable_changes == 'true' && needs.build.result == 'success'
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.detect.outputs.affected_modules) }}
+    uses: ./.github/workflows/test-unit.yml
+    with:
+      module: ${{ matrix.module }}
+      ref: ${{ inputs.ref }}
+
+  # ── Stage 4: Integration tests (conditional) ──────────────────────────────
+  integration:
+    name: Integration tests
+    needs: [detect, unit-test]
+    if: >-
+      always() &&
+      needs.detect.result == 'success' &&
+      needs.detect.outputs.run_it_tests == 'true' &&
+      (needs.unit-test.result == 'success' || needs.unit-test.result == 'skipped')
+    uses: ./.github/workflows/test-integration.yml
+    with:
+      ref: ${{ inputs.ref }}
+
+  # ── Stage 5: Summary report ───────────────────────────────────────────────
+  report:
+    name: Pipeline summary
+    needs: [detect, build, unit-test, integration]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write job summary
+        env:
+          REQUESTED_MODULES:  ${{ inputs.modules }}
+          TARGET_REF:         ${{ inputs.ref }}
+          AFFECTED_MODULES:   ${{ needs.detect.outputs.affected_modules }}
+          DETECTION_SOURCE:   ${{ needs.detect.outputs.detection_source }}
+          RUN_IT:             ${{ needs.detect.outputs.run_it_tests }}
+          BUILD_RESULT:       ${{ needs.build.result }}
+          UNIT_TEST_RESULT:   ${{ needs.unit-test.result }}
+          INTEGRATION_RESULT: ${{ needs.integration.result }}
+        run: |
+          {
+            echo "## On-Demand Pipeline Summary"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Requested modules** | \`$REQUESTED_MODULES\` |"
+            echo "| **Target ref** | \`$TARGET_REF\` |"
+            echo "| **Resolved modules** | \`$AFFECTED_MODULES\` |"
+            echo "| **Build** | $BUILD_RESULT |"
+            echo "| **Unit tests** | $UNIT_TEST_RESULT |"
+            echo "| **Integration tests** | ${INTEGRATION_RESULT:-skipped (not triggered)} |"
+          } >> "$GITHUB_STEP_SUMMARY"

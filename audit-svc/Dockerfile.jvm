@@ -1,0 +1,13 @@
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /code
+COPY pom.xml .
+RUN mvn -B dependency:go-offline -q
+COPY src/ ./src/
+RUN mvn -B package -DskipTests -q
+
+FROM eclipse-temurin:21-jre
+WORKDIR /work
+COPY --from=build /code/target/quarkus-app /work/quarkus-app
+EXPOSE 8084
+USER 1001
+CMD ["java", "-jar", "/work/quarkus-app/quarkus-run.jar", "-Dquarkus.http.host=0.0.0.0"]
