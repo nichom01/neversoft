@@ -1,0 +1,101 @@
+name: Integration Tests
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "Git ref to check out (branch, tag, or SHA). Defaults to triggering SHA."
+        type: string
+        default: ''
+    outputs:
+      status:
+        description: "'passed' or 'failed'"
+        value: ${{ jobs.integration.outputs.status }}
+      tests_run:
+        description: "Total number of integration tests executed"
+        value: ${{ jobs.integration.outputs.tests_run }}
+      tests_failed:
+        description: "Number of failed or errored integration tests"
+        value: ${{ jobs.integration.outputs.tests_failed }}
+      duration_s:
+        description: "Wall-clock seconds for the integration test job"
+        value: ${{ jobs.integration.outputs.duration_s }}
+
+jobs:
+  integration:
+    name: Integration tests (full stack)
+    runs-on: ubuntu-latest
+    outputs:
+      status:       ${{ steps.result.outputs.status }}
+      tests_run:    ${{ steps.result.outputs.tests_run }}
+      tests_failed: ${{ steps.result.outputs.tests_failed }}
+      duration_s:   ${{ steps.result.outputs.duration_s }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Start timer
+        run: echo "start=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Build Docker images (JVM mode)
+        working-directory: infra
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml build
+
+      - name: Start full stack
+        working-directory: infra
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --wait
+        timeout-minutes: 10
+
+      - name: Run integration tests
+        id: tests
+        run: mvn -f it-tests/pom.xml verify -Pit -B -q
+
+      - name: Parse Failsafe results
+        id: failsafe
+        if: always()
+        run: |
+          REPORT_DIR="it-tests/target/failsafe-reports"
+          if ls "$REPORT_DIR"/TEST-*.xml >/dev/null 2>&1; then
+            TESTS_RUN=$(grep -h 'tests=' "$REPORT_DIR"/TEST-*.xml \
+              | grep -oE 'tests="[0-9]+"' | grep -oE '[0-9]+' \
+              | awk '{s+=$1} END {print s+0}')
+            FAILURES=$(grep -h 'failures=' "$REPORT_DIR"/TEST-*.xml \
+              | grep -oE 'failures="[0-9]+"' | grep -oE '[0-9]+' \
+              | awk '{s+=$1} END {print s+0}')
+            ERRORS=$(grep -h 'errors=' "$REPORT_DIR"/TEST-*.xml \
+              | grep -oE 'errors="[0-9]+"' | grep -oE '[0-9]+' \
+              | awk '{s+=$1} END {print s+0}')
+            TESTS_FAILED=$(( FAILURES + ERRORS ))
+          else
+            TESTS_RUN=0
+            TESTS_FAILED=0
+          fi
+          echo "tests_run=$TESTS_RUN"       >> "$GITHUB_ENV"
+          echo "tests_failed=$TESTS_FAILED" >> "$GITHUB_ENV"
+
+      - name: Tear down stack
+        if: always()
+        working-directory: infra
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
+
+      - name: Record result
+        id: result
+        if: always()
+        run: |
+          DURATION=$(( $(date +%s) - ${{ env.start }} ))
+          if [ "${{ steps.tests.outcome }}" = "success" ]; then
+            echo "status=passed" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+          fi
+          echo "tests_run=${{ env.tests_run }}"       >> "$GITHUB_OUTPUT"
+          echo "tests_failed=${{ env.tests_failed }}" >> "$GITHUB_OUTPUT"
+          echo "duration_s=$DURATION"                 >> "$GITHUB_OUTPUT"

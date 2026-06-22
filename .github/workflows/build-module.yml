@@ -1,0 +1,59 @@
+name: Build Module
+
+on:
+  workflow_call:
+    inputs:
+      module:
+        description: "Module directory name (e.g. declare-svc)"
+        type: string
+        required: true
+      ref:
+        description: "Git ref to check out (branch, tag, or SHA). Defaults to triggering SHA."
+        type: string
+        default: ''
+    outputs:
+      status:
+        description: "'passed' or 'failed'"
+        value: ${{ jobs.build.outputs.status }}
+      duration_s:
+        description: "Wall-clock seconds for the build job"
+        value: ${{ jobs.build.outputs.duration_s }}
+
+jobs:
+  build:
+    name: Build ${{ inputs.module }}
+    runs-on: ubuntu-latest
+    outputs:
+      status:     ${{ steps.result.outputs.status }}
+      duration_s: ${{ steps.result.outputs.duration_s }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Start timer
+        id: timer
+        run: echo "start=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Build ${{ inputs.module }}
+        id: build
+        run: mvn -f "${{ inputs.module }}/pom.xml" package -Dmaven.test.skip=true -B -q
+
+      - name: Record result
+        id: result
+        if: always()
+        run: |
+          DURATION=$(( $(date +%s) - ${{ env.start }} ))
+          if [ "${{ steps.build.outcome }}" = "success" ]; then
+            echo "status=passed" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+          fi
+          echo "duration_s=$DURATION" >> "$GITHUB_OUTPUT"

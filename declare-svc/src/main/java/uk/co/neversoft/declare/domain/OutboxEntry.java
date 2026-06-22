@@ -2,6 +2,8 @@ package uk.co.neversoft.declare.domain;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -21,6 +23,7 @@ public class OutboxEntry extends PanacheEntityBase {
     @Column(name = "event_type", nullable = false)
     public String eventType;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
     public String payload;
 

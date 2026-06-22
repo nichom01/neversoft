@@ -1,0 +1,171 @@
+name: Detect Changed Modules
+
+on:
+  workflow_call:
+    inputs:
+      modules:
+        description: >-
+          Comma-separated module names, 'all' to force a full run, or empty to
+          auto-detect from git diff (requires base_ref).
+        type: string
+        default: ''
+      base_ref:
+        description: "Base ref (SHA or branch) to diff against. Required for auto-detection."
+        type: string
+        default: ''
+    outputs:
+      affected_modules:
+        description: "JSON array of buildable service modules with changes e.g. [\"declare-svc\"]"
+        value: ${{ jobs.detect.outputs.affected_modules }}
+      has_buildable_changes:
+        description: "'true' if affected_modules is non-empty"
+        value: ${{ jobs.detect.outputs.has_buildable_changes }}
+      run_it_tests:
+        description: "'true' if integration tests should run"
+        value: ${{ jobs.detect.outputs.run_it_tests }}
+      run_all:
+        description: "'true' if all modules are included (root-level change or force-all)"
+        value: ${{ jobs.detect.outputs.run_all }}
+      detection_source:
+        description: "How the module list was determined: detected | manual | full-fallback"
+        value: ${{ jobs.detect.outputs.detection_source }}
+
+jobs:
+  detect:
+    name: Determine affected modules
+    runs-on: ubuntu-latest
+    outputs:
+      affected_modules:     ${{ steps.run.outputs.affected_modules }}
+      has_buildable_changes: ${{ steps.run.outputs.has_buildable_changes }}
+      run_it_tests:         ${{ steps.run.outputs.run_it_tests }}
+      run_all:              ${{ steps.run.outputs.run_all }}
+      detection_source:     ${{ steps.run.outputs.detection_source }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed modules
+        id: run
+        env:
+          MODULES_INPUT: ${{ inputs.modules }}
+          BASE_REF: ${{ inputs.base_ref }}
+        shell: bash
+        run: |
+          # Modules that have a Maven build and unit tests
+          BUILDABLE_MODULES=(declare-svc audit-svc validate-svc risk-svc)
+
+          # Directories whose changes trigger the integration test suite
+          IT_TRIGGER_DIRS=(declare-svc audit-svc validate-svc risk-svc it-tests infra)
+
+          # All top-level directories tracked by the repo; anything else = root-level change
+          ALL_TRACKED_DIRS=(declare-svc audit-svc validate-svc risk-svc it-tests infra
+                            docs specs .github .specify .claude README.md CLAUDE.md
+                            .gitignore prd-microservices.md)
+
+          # ── Helpers ──────────────────────────────────────────────────────────
+
+          json_array() {
+            local arr=("$@") json='[' first=true
+            for item in "${arr[@]}"; do
+              $first && first=false || json+=','
+              json+="\"$item\""
+            done
+            echo "${json}]"
+          }
+
+          is_in_array() {
+            local needle="$1"; shift
+            for item in "$@"; do [ "$item" = "$needle" ] && return 0; done
+            return 1
+          }
+
+          output_full_run() {
+            local source="$1"
+            echo "affected_modules=$(json_array "${BUILDABLE_MODULES[@]}")" >> "$GITHUB_OUTPUT"
+            echo "has_buildable_changes=true"  >> "$GITHUB_OUTPUT"
+            echo "run_it_tests=true"           >> "$GITHUB_OUTPUT"
+            echo "run_all=true"                >> "$GITHUB_OUTPUT"
+            echo "detection_source=$source"    >> "$GITHUB_OUTPUT"
+          }
+
+          # ── Case 1: Explicit module list provided ─────────────────────────────
+          if [ -n "$MODULES_INPUT" ] && [ "$MODULES_INPUT" != "all" ]; then
+            IFS=',' read -ra RAW_MODULES <<< "$MODULES_INPUT"
+            BUILDABLE=()
+            RUN_IT=false
+            for raw in "${RAW_MODULES[@]}"; do
+              m="$(echo "$raw" | xargs)"
+              is_in_array "$m" "${BUILDABLE_MODULES[@]}"  && BUILDABLE+=("$m")
+              is_in_array "$m" "${IT_TRIGGER_DIRS[@]}"    && RUN_IT=true
+            done
+            HAS_BUILDABLE=$( [ ${#BUILDABLE[@]} -gt 0 ] && echo true || echo false )
+            echo "affected_modules=$(json_array "${BUILDABLE[@]}")" >> "$GITHUB_OUTPUT"
+            echo "has_buildable_changes=$HAS_BUILDABLE" >> "$GITHUB_OUTPUT"
+            echo "run_it_tests=$RUN_IT"                 >> "$GITHUB_OUTPUT"
+            echo "run_all=false"                        >> "$GITHUB_OUTPUT"
+            echo "detection_source=manual"              >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # ── Case 2: Force full run ────────────────────────────────────────────
+          if [ "$MODULES_INPUT" = "all" ]; then
+            output_full_run "manual"
+            exit 0
+          fi
+
+          # ── Case 3: Auto-detect from git diff ────────────────────────────────
+          if [ -z "$BASE_REF" ]; then
+            echo "::warning::base_ref not provided — falling back to full run"
+            output_full_run "full-fallback"
+            exit 0
+          fi
+
+          if ! CHANGED_FILES=$(git diff --name-only "$BASE_REF"...HEAD 2>/dev/null); then
+            echo "::warning::git diff failed — falling back to full run"
+            output_full_run "full-fallback"
+            exit 0
+          fi
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "::notice::No changed files detected"
+            echo "affected_modules=[]"         >> "$GITHUB_OUTPUT"
+            echo "has_buildable_changes=false" >> "$GITHUB_OUTPUT"
+            echo "run_it_tests=false"          >> "$GITHUB_OUTPUT"
+            echo "run_all=false"               >> "$GITHUB_OUTPUT"
+            echo "detection_source=detected"   >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          AFFECTED_BUILDABLE=()
+          RUN_IT=false
+          RUN_ALL=false
+
+          while IFS= read -r f; do
+            top_dir="$(echo "$f" | cut -d'/' -f1)"
+
+            # A root-level file or unknown top-level dir triggers a full run
+            if ! is_in_array "$top_dir" "${ALL_TRACKED_DIRS[@]}"; then
+              RUN_ALL=true
+              break
+            fi
+
+            is_in_array "$top_dir" "${BUILDABLE_MODULES[@]}" \
+              && ! is_in_array "$top_dir" "${AFFECTED_BUILDABLE[@]}" \
+              && AFFECTED_BUILDABLE+=("$top_dir")
+
+            is_in_array "$top_dir" "${IT_TRIGGER_DIRS[@]}" && RUN_IT=true
+          done <<< "$CHANGED_FILES"
+
+          if [ "$RUN_ALL" = true ]; then
+            output_full_run "detected"
+            exit 0
+          fi
+
+          HAS_BUILDABLE=$( [ ${#AFFECTED_BUILDABLE[@]} -gt 0 ] && echo true || echo false )
+          echo "affected_modules=$(json_array "${AFFECTED_BUILDABLE[@]}")" >> "$GITHUB_OUTPUT"
+          echo "has_buildable_changes=$HAS_BUILDABLE" >> "$GITHUB_OUTPUT"
+          echo "run_it_tests=$RUN_IT"                 >> "$GITHUB_OUTPUT"
+          echo "run_all=false"                        >> "$GITHUB_OUTPUT"
+          echo "detection_source=detected"            >> "$GITHUB_OUTPUT"

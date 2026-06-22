@@ -76,7 +76,7 @@ public class ValidationService {
         }
     }
 
-    static String buildEventPayload(UUID eventId, DeclarationCreatedEvent source, Validation validation) {
+    public static String buildEventPayload(UUID eventId, DeclarationCreatedEvent source, Validation validation) {
         try {
             var m = new ObjectMapper();
             m.findAndRegisterModules();

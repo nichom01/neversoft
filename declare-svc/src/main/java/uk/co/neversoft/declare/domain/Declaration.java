@@ -2,6 +2,8 @@ package uk.co.neversoft.declare.domain;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -15,6 +17,7 @@ public class Declaration extends PanacheEntityBase {
     @Column(name = "customer_id", nullable = false)
     public UUID customerId;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
     public String payload;
 

@@ -59,7 +59,7 @@ public class RiskService {
                 assessment.declarationId, assessment.band, assessment.score, outbox.id);
     }
 
-    static String buildEventPayload(UUID eventId, ValidationCompletedEvent source, RiskAssessment assessment) {
+    public static String buildEventPayload(UUID eventId, ValidationCompletedEvent source, RiskAssessment assessment) {
         try {
             var m = new ObjectMapper();
             m.findAndRegisterModules();
