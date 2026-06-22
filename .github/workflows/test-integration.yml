@@ -58,19 +58,24 @@ jobs:
         working-directory: infra
         run: CONNECT_URL=http://localhost:8083 bash debezium/register-connectors.sh
 
-      - name: Dump connector status (pre-test diagnostic)
-        if: always()
-        run: |
-          for c in declare-outbox-connector validate-outbox-connector risk-outbox-connector; do
-            echo "=== $c ==="
-            curl -sf http://localhost:8083/connectors/$c/status | python3 -m json.tool || echo "  (failed to fetch)"
-          done
-          echo "=== Kafka topics ==="
-          docker exec infra-kafka-1 /usr/bin/kafka-topics --bootstrap-server localhost:29092 --list || true
-
       - name: Run integration tests
         id: tests
         run: mvn -f it-tests/pom.xml verify -Pit -B -q
+
+      - name: Dump diagnostics on failure
+        if: failure()
+        run: |
+          echo "=== Connector status ==="
+          for c in declare-outbox-connector validate-outbox-connector risk-outbox-connector; do
+            echo "--- $c ---"
+            curl -sf http://localhost:8083/connectors/$c/status | python3 -m json.tool || echo "(failed to fetch)"
+          done
+          echo "=== Debezium Connect logs ==="
+          docker logs infra-debezium-connect-1 2>&1 | tail -100
+          echo "=== declare-svc logs ==="
+          docker logs infra-declare-svc-1 2>&1 | tail -50
+          echo "=== audit-svc logs ==="
+          docker logs infra-audit-svc-1 2>&1 | tail -30
 
       - name: Parse Failsafe results
         id: failsafe
