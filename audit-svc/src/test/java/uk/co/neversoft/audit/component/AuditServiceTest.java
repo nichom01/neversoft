@@ -1,5 +1,6 @@
 package uk.co.neversoft.audit.component;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -17,7 +18,7 @@ class AuditServiceTest {
     @Inject AuditService service;
 
     @Test
-    void declarationEvent_writesAuditRow() {
+    void declarationEvent_writesAuditRow() throws Exception {
         String eventId = UUID.randomUUID().toString();
         String raw = buildRaw(eventId, "declarations.created");
         service.record("declarations.created", event(eventId, "declarations.created"), raw);
@@ -26,7 +27,7 @@ class AuditServiceTest {
         assertNotNull(entry);
         assertEquals("declarations.created", entry.topic);
         assertEquals("declarations.created", entry.eventType);
-        assertEquals(raw, entry.rawPayload);
+        assertJsonEquals(raw, entry.rawPayload);
     }
 
     @Test
@@ -70,5 +71,10 @@ class AuditServiceTest {
 
     private static String buildRaw(String eventId, String eventType) {
         return "{\"eventId\":\"" + eventId + "\",\"eventType\":\"" + eventType + "\",\"aggregateId\":\"" + UUID.randomUUID() + "\"}";
+    }
+
+    private static void assertJsonEquals(String expected, String actual) throws Exception {
+        ObjectMapper m = new ObjectMapper();
+        assertEquals(m.readTree(expected), m.readTree(actual));
     }
 }
