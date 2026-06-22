@@ -42,7 +42,7 @@ jobs:
       detection_source:     ${{ steps.run.outputs.detection_source }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 

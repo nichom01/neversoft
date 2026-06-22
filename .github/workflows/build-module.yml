@@ -28,11 +28,11 @@ jobs:
       duration_s: ${{ steps.result.outputs.duration_s }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
