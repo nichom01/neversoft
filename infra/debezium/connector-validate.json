@@ -1,0 +1,24 @@
+{
+  "name": "validate-outbox-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres-validate",
+    "database.port": "5432",
+    "database.user": "validate",
+    "database.password": "validate",
+    "database.dbname": "validate",
+    "topic.prefix": "validate",
+    "plugin.name": "pgoutput",
+    "table.include.list": "public.outbox",
+    "publication.autocreate.mode": "filtered",
+    "snapshot.mode": "never",
+    "tombstones.on.delete": "false",
+    "transforms": "outbox",
+    "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+    "transforms.outbox.table.field.event.id": "id",
+    "transforms.outbox.table.field.event.key": "aggregate_id",
+    "transforms.outbox.table.field.event.payload": "payload",
+    "transforms.outbox.route.by.field": "aggregate_type",
+    "transforms.outbox.table.field.event.timestamp": "created_at"
+  }
+}
