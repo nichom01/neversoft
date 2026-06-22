@@ -242,7 +242,7 @@ Capture the decision in `docs/adr-001-kafka-client.md` before proceeding to Phas
 
 ---
 
-## Phase 7 — End-to-End Integration Tests
+## Phase 7 — End-to-End Integration Tests ✓ COMPLETE
 
 **Goal:** Prove the full wiring across all four services and Debezium.
 
