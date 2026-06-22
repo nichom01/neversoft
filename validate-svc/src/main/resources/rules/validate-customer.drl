@@ -1,0 +1,14 @@
+package rules
+
+import uk.co.neversoft.validate.rules.DeclarationFact
+import uk.co.neversoft.validate.rules.CustomerFact
+import uk.co.neversoft.validate.domain.ValidationOutcome
+
+rule "Customer must exist"
+  when
+    $d : DeclarationFact(customerId != null)
+    not CustomerFact(id == $d.customerId)
+  then
+    $d.setOutcome(ValidationOutcome.FAILED);
+    $d.setFailureReason("Customer not found: " + $d.getCustomerId());
+end

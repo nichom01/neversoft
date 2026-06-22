@@ -163,6 +163,25 @@ services:
       timeout: 5s
       retries: 10
 
+  validate-svc:
+    build:
+      context: ../validate-svc
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      QUARKUS_PROFILE: prod
+    depends_on:
+      postgres-validate:
+        condition: service_healthy
+      kafka-setup:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/q/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 networks:
   default:
     name: neversoft-net
