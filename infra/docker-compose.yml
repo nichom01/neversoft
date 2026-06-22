@@ -143,6 +143,26 @@ services:
       timeout: 10s
       retries: 15
 
+  # ── Application services ─────────────────────────────────────────────────────
+  declare-svc:
+    build:
+      context: ../declare-svc
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      QUARKUS_PROFILE: prod
+    depends_on:
+      postgres-declare:
+        condition: service_healthy
+      kafka-setup:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/q/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 networks:
   default:
     name: neversoft-net
