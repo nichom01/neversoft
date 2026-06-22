@@ -44,13 +44,13 @@ services:
         condition: service_healthy
     entrypoint: ["/bin/sh", "-c"]
     command: >
-      "kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists
+      "/usr/bin/kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists
          --topic declarations.created --partitions 1 --replication-factor 1
          --config retention.ms=604800000 &&
-       kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists
+       /usr/bin/kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists
          --topic validations.completed --partitions 1 --replication-factor 1
          --config retention.ms=604800000 &&
-       kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists
+       /usr/bin/kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists
          --topic risk.assessed --partitions 1 --replication-factor 1
          --config retention.ms=604800000 &&
        echo 'All topics created.'"
