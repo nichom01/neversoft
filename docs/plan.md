@@ -205,7 +205,7 @@ Capture the decision in `docs/adr-001-kafka-client.md` before proceeding to Phas
 
 ---
 
-## Phase 6 — Audit Service
+## Phase 6 — Audit Service ✓ COMPLETE
 
 **Goal:** Passive observer. Consume all three topics, write immutable audit log entries.
 

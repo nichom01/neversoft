@@ -182,6 +182,44 @@ services:
       timeout: 5s
       retries: 10
 
+  risk-svc:
+    build:
+      context: ../risk-svc
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      QUARKUS_PROFILE: prod
+    depends_on:
+      postgres-risk:
+        condition: service_healthy
+      kafka-setup:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8082/q/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  audit-svc:
+    build:
+      context: ../audit-svc
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8084"
+    environment:
+      QUARKUS_PROFILE: prod
+    depends_on:
+      postgres-audit:
+        condition: service_healthy
+      kafka-setup:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8084/q/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 networks:
   default:
     name: neversoft-net
