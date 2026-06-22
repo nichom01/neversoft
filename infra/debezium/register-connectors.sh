@@ -35,10 +35,30 @@ register() {
   fi
 }
 
+wait_for_running() {
+  local name="$1"
+  echo "Waiting for connector ${name} to reach RUNNING state..."
+  local attempts=0
+  until [[ "$(curl -sf "${CONNECT_URL}/connectors/${name}/status" | jq -r '.connector.state' 2>/dev/null)" == "RUNNING" ]]; do
+    sleep 2
+    attempts=$((attempts + 1))
+    if [[ ${attempts} -ge 30 ]]; then
+      echo "  ERROR: ${name} did not reach RUNNING state after 60s" >&2
+      curl -s "${CONNECT_URL}/connectors/${name}/status" | jq . >&2
+      exit 1
+    fi
+  done
+  echo "  ${name} is RUNNING."
+}
+
 wait_for_connect
 register "declare-outbox-connector"   "${SCRIPT_DIR}/connector-declare.json"
 register "validate-outbox-connector"  "${SCRIPT_DIR}/connector-validate.json"
 register "risk-outbox-connector"      "${SCRIPT_DIR}/connector-risk.json"
+
+wait_for_running "declare-outbox-connector"
+wait_for_running "validate-outbox-connector"
+wait_for_running "risk-outbox-connector"
 
 echo ""
 echo "Registered connectors:"

@@ -35,7 +35,7 @@ class EndToEndIT {
     static void setup() throws Exception {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port    = 8080;
-        Awaitility.setDefaultTimeout(10, TimeUnit.SECONDS);
+        Awaitility.setDefaultTimeout(30, TimeUnit.SECONDS);
         Awaitility.setDefaultPollInterval(500, TimeUnit.MILLISECONDS);
 
         declareDb = DriverManager.getConnection("jdbc:postgresql://localhost:5432/declare", "declare", "declare");
