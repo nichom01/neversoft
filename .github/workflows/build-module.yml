@@ -44,7 +44,7 @@ jobs:
 
       - name: Build ${{ inputs.module }}
         id: build
-        run: mvn -f "${{ inputs.module }}/pom.xml" package -DskipTests -B -q
+        run: mvn -f "${{ inputs.module }}/pom.xml" package -Dmaven.test.skip=true -B -q
 
       - name: Record result
         id: result

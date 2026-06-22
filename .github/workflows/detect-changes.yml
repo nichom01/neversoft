@@ -61,7 +61,8 @@ jobs:
 
           # All top-level directories tracked by the repo; anything else = root-level change
           ALL_TRACKED_DIRS=(declare-svc audit-svc validate-svc risk-svc it-tests infra
-                            docs specs .github .specify .claude)
+                            docs specs .github .specify .claude README.md CLAUDE.md
+                            .gitignore prd-microservices.md)
 
           # ── Helpers ──────────────────────────────────────────────────────────
 
