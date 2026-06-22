@@ -206,62 +206,121 @@ Each connector monitors its service's `outbox` table via PostgreSQL WAL (`wal_le
 
 ---
 
-## Local Development
+## Developer Guide
 
-Each service can be run independently in dev mode. Quarkus DevServices automatically provisions a PostgreSQL container; Kafka channels use in-memory connectors.
+### Starting a Service Locally
+
+Each service runs independently in Quarkus dev mode. There is no top-level Maven aggregator, so `cd` into the service directory first.
 
 ```bash
-cd declare-svc
+cd declare-svc    # or validate-svc / risk-svc / audit-svc
 mvn quarkus:dev
 ```
 
+In dev mode Quarkus DevServices automatically starts a PostgreSQL container for the service's database. Kafka channels switch to in-memory connectors — no broker needed. Live reload is enabled; changes to source files are picked up without restarting.
+
+> To run all four services simultaneously for manual end-to-end testing locally, use the Docker Compose stack instead (see [Running the Full Stack](#running-the-full-stack)).
+
 ---
 
-## Building
+### Running Tests
+
+There is no root Maven aggregator. Each service has its own test suite; run them from the service directory.
+
+#### Unit Tests
+
+Pure logic tests with no external dependencies. Fast, no containers required.
 
 ```bash
-# All services, skip tests
-mvn clean package -DskipTests
-
-# Native image (single service)
+# Run unit tests for a single service
 cd declare-svc
-mvn package -Pnative
+mvn test -pl . -Dtest="**/unit/**"
 
-# JVM image (validate-svc — required for Drools compatibility)
-cd validate-svc
-mvn package  # uses Dockerfile.jvm
+# Or for any service
+cd validate-svc && mvn test -Dtest="**/unit/**"
+cd risk-svc     && mvn test -Dtest="**/unit/**"
+cd audit-svc    && mvn test -Dtest="**/unit/**"
 ```
 
-Docker images use a two-stage build: GraalVM Mandrel compiles the native binary, then it is copied into a minimal `quarkus-micro-image:2.0` runtime (target < 100 MB per image). `validate-svc` uses OpenJDK 21 JRE instead.
+| Service | Unit tests |
+|---|---|
+| `declare-svc` | `OutboxPayloadTest` |
+| `validate-svc` | `CustomerValidationRuleTest`, `ValidationPayloadTest` |
+| `risk-svc` | `StubRiskScorerTest`, `RiskPayloadTest` |
+| `audit-svc` | `AuditDeduplicationTest` |
 
----
+#### Component Tests
 
-## Testing
-
-### Unit and Component Tests
+Per-service acceptance tests. Testcontainers provisions a real PostgreSQL instance; Kafka channels use in-memory connectors. Docker must be running.
 
 ```bash
-# Run all tests across the project
+cd declare-svc
+mvn test -Dtest="**/component/**"
+
+cd validate-svc && mvn test -Dtest="**/component/**"
+cd risk-svc     && mvn test -Dtest="**/component/**"
+cd audit-svc    && mvn test -Dtest="**/component/**"
+```
+
+| Service | Component tests |
+|---|---|
+| `declare-svc` | `DeclarationResourceTest` |
+| `validate-svc` | `ValidationServiceTest` |
+| `risk-svc` | `RiskServiceTest` |
+| `audit-svc` | `AuditServiceTest` |
+
+To run unit and component tests together for a service:
+
+```bash
+cd declare-svc
 mvn test
 ```
 
-Tests use Testcontainers for real PostgreSQL instances and in-memory Kafka channels. No mocking of infrastructure.
+#### Integration Tests
 
-### End-to-End Integration Tests
+End-to-end tests covering the full event flow through all four services and Debezium. These require the complete Docker Compose stack to be running and the Debezium connectors to be registered.
 
 ```bash
-# Requires the full Docker Compose stack to be running
-cd infra && docker compose up --wait -d
+# 1. Start the full stack (if not already running)
+cd infra
+docker compose up --wait -d
 
+# 2. Register Debezium connectors (if not already registered)
+curl -X POST http://localhost:8083/connectors -H "Content-Type: application/json" -d @debezium/declare-connector.json
+curl -X POST http://localhost:8083/connectors -H "Content-Type: application/json" -d @debezium/validate-connector.json
+curl -X POST http://localhost:8083/connectors -H "Content-Type: application/json" -d @debezium/risk-connector.json
+
+# 3. Run the integration test suite
 cd ../it-tests
 mvn verify -Pit
 ```
 
-Three scenarios covered:
+Three scenarios are covered by `EndToEndIT`:
 
-1. Happy path — valid customer flows through validate → risk → audit
-2. Validation failure — unknown customer, risk step skipped
-3. Idempotency — duplicate `idempotencyKey` handled without duplicate processing
+1. **Happy path** — known customer, declaration flows through validate → risk → audit
+2. **Validation failure** — unknown customer, risk step is skipped, audit records the failure
+3. **Idempotency** — duplicate `idempotencyKey` is rejected without duplicate processing downstream
+
+Tests poll with up to 10 seconds of tolerance (Awaitility) to account for async propagation through Kafka and Debezium.
+
+---
+
+### Building
+
+There is no top-level aggregator build. Build each service from its own directory.
+
+```bash
+# JVM jar (all services)
+cd declare-svc && mvn clean package -DskipTests
+
+# Native image (declare, risk, audit)
+cd declare-svc && mvn package -Pnative -DskipTests
+
+# JVM image only — validate-svc cannot build native (Drools incompatibility)
+cd validate-svc && mvn clean package -DskipTests
+```
+
+Docker images use a two-stage build: GraalVM Mandrel compiles the native binary in stage one; stage two copies it into a minimal `quarkus-micro-image:2.0` runtime targeting < 100 MB. `validate-svc` uses an OpenJDK 21 JRE image (`Dockerfile.jvm`) instead.
 
 ---
 
