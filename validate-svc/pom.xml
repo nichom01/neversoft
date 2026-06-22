@@ -95,12 +95,6 @@
       <scope>test</scope>
     </dependency>
     <!-- In-memory connector for Kafka channels in component tests -->
-    <dependency>
-      <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-testing</artifactId>
-      <version>4.26.0</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>
