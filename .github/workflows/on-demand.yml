@@ -8,9 +8,9 @@ on:
         type: string
         default: 'all'
       ref:
-        description: "Branch name or SHA to test"
+        description: "Branch name or SHA to test (leave blank to use the branch this workflow runs on)"
         type: string
-        default: ${{ github.ref_name }}
+        default: ''
 
 jobs:
   # ── Stage 1: Resolve module scope from user input ─────────────────────────
@@ -32,7 +32,7 @@ jobs:
     uses: ./.github/workflows/build-module.yml
     with:
       module: ${{ matrix.module }}
-      ref: ${{ inputs.ref }}
+      ref: ${{ inputs.ref || github.ref_name }}
 
   # ── Stage 3: Unit test affected modules in parallel ───────────────────────
   unit-test:
@@ -46,7 +46,7 @@ jobs:
     uses: ./.github/workflows/test-unit.yml
     with:
       module: ${{ matrix.module }}
-      ref: ${{ inputs.ref }}
+      ref: ${{ inputs.ref || github.ref_name }}
 
   # ── Stage 4: Integration tests (conditional) ──────────────────────────────
   integration:
@@ -59,7 +59,7 @@ jobs:
       (needs.unit-test.result == 'success' || needs.unit-test.result == 'skipped')
     uses: ./.github/workflows/test-integration.yml
     with:
-      ref: ${{ inputs.ref }}
+      ref: ${{ inputs.ref || github.ref_name }}
 
   # ── Stage 5: Summary report ───────────────────────────────────────────────
   report:
@@ -71,7 +71,7 @@ jobs:
       - name: Write job summary
         env:
           REQUESTED_MODULES:  ${{ inputs.modules }}
-          TARGET_REF:         ${{ inputs.ref }}
+          TARGET_REF:         ${{ inputs.ref || github.ref_name }}
           AFFECTED_MODULES:   ${{ needs.detect.outputs.affected_modules }}
           DETECTION_SOURCE:   ${{ needs.detect.outputs.detection_source }}
           RUN_IT:             ${{ needs.detect.outputs.run_it_tests }}
