@@ -35,6 +35,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
+      start_period: 30s
 
   # ── Topic bootstrap ───────────────────────────────────────────────────────────
   kafka-setup:
