@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "agent",
+            "if": "Bash(git*)",
+            "prompt": "You received a PostToolUse hook. The Bash tool input JSON is: $ARGUMENTS\n\nParse the 'command' field from tool_input. If the command does not contain the word 'commit' as a git subcommand (e.g. it's a git status, git push, git log, etc.), stop immediately — do nothing.\n\nIf it WAS a git commit:\n1. Run `git log -1 --name-only` to see what files were committed.\n2. Read `docs/plan.md`.\n3. Based on the committed files, mark any completed phases or tasks with ✅:\n   - A complete phase heading: `## Phase 1 — Infrastructure Skeleton` → `## Phase 1 — Infrastructure Skeleton ✅`\n   - A complete individual task: `1. **`infra/docker-compose.yml`**` → `1. ✅ **`infra/docker-compose.yml`**`\n4. Be conservative — only mark ✅ when the committed files clearly represent that work being done. Never mark something complete speculatively.\n5. Save the file only if you made changes.",
+            "timeout": 60,
+            "statusMessage": "Updating plan with commit progress..."
+          }
+        ]
+      }
+    ]
+  }
+}
