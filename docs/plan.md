@@ -164,7 +164,7 @@ Capture the decision in `docs/adr-001-kafka-client.md` before proceeding to Phas
 
 ---
 
-## Phase 5 — Risk Service
+## Phase 5 — Risk Service ✓ COMPLETE
 
 **Goal:** Consume `validations.completed` (PASSED only), write stub risk record and outbox.
 
