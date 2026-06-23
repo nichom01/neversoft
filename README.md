@@ -278,6 +278,11 @@ In dev mode Quarkus DevServices automatically starts a PostgreSQL container. Kaf
 
 There is no root Maven aggregator. Run tests from the relevant module directory.
 
+> **Java version**: The system JVM may be newer than Quarkus 3.15.3's Byte Buddy supports (Java 23 max). If tests fail with `Java X is not supported by the current version of Byte Buddy`, prefix all `mvn test` commands with:
+> ```bash
+> JAVA_HOME=/opt/homebrew/Cellar/openjdk@21/21.0.8/libexec/openjdk.jdk/Contents/Home mvn test
+> ```
+
 #### Consumer Map Library
 
 ```bash
@@ -423,7 +428,7 @@ Each service owns an isolated database, managed by Flyway migrations.
 
 ## API Reference
 
-`svc-declare` is the only service with a public HTTP API. All others are event-driven.
+`svc-declare` is the primary entry point. `svc-audit` also exposes a query API for inspecting recorded events.
 
 ### POST /declarations
 
@@ -446,6 +451,27 @@ Content-Type: application/json
 
 Health endpoints are available on all services at `/q/health` and `/q/health/ready`.
 
+### GET /audit (svc-audit :8084)
+
+Query recorded audit log entries.
+
+```
+GET http://localhost:8084/audit
+GET http://localhost:8084/audit?topic=declarations.created
+GET http://localhost:8084/audit?aggregateId=<uuid>
+GET http://localhost:8084/audit?topic=risk.assessed&aggregateId=<uuid>&page=0&size=20
+GET http://localhost:8084/audit/<entry-uuid>
+```
+
+| Query param | Description | Default |
+|---|---|---|
+| `topic` | Filter by Kafka topic | — |
+| `aggregateId` | Filter by aggregate ID | — |
+| `page` | Page number (0-based) | `0` |
+| `size` | Page size | `20` |
+
+Results are ordered by `receivedAt` descending. `rawPayload` is returned as an embedded JSON object.
+
 ---
 
 ## Known Constraints (PoC Scope)
@@ -456,7 +482,6 @@ Health endpoints are available on all services at `/q/health` and `/q/health/rea
 - **No dead-letter queue** — poison pill messages will block the consumer. DLQ handling is out of scope.
 - **Single Kafka broker** — no multi-broker failover. Not suitable for production as-is.
 - **No schema registry** — events are plain JSON; versioning is manual.
-- **No audit query API** — `svc-audit` has no REST endpoint; data is accessible via direct DB connection only.
 - **Outbox rows retained indefinitely** — no cleanup strategy implemented.
 - **Debezium connectors require manual registration** — not auto-registered on stack start.
 
