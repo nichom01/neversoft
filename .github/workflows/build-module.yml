@@ -42,6 +42,9 @@ jobs:
         id: timer
         run: echo "start=$(date +%s)" >> "$GITHUB_ENV"
 
+      - name: Install lib-consumer-map
+        run: mvn -f lib-consumer-map/pom.xml install -DskipTests -B -q
+
       - name: Build ${{ inputs.module }}
         id: build
         run: mvn -f "${{ inputs.module }}/pom.xml" package -Dmaven.test.skip=true -B -q

@@ -49,6 +49,9 @@ jobs:
       - name: Start timer
         run: echo "start=$(date +%s)" >> "$GITHUB_ENV"
 
+      - name: Install lib-consumer-map
+        run: mvn -f lib-consumer-map/pom.xml install -DskipTests -B -q
+
       - name: Run unit tests — ${{ inputs.module }}
         id: test
         run: mvn -f "${{ inputs.module }}/pom.xml" test -B -q
