@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>uk.co.neversoft</groupId>
-  <artifactId>svc-audit</artifactId>
+  <artifactId>lib-consumer-map</artifactId>
   <version>1.0.0-SNAPSHOT</version>
 
   <properties>
@@ -16,6 +16,7 @@
     <quarkus.platform.version>3.15.3</quarkus.platform.version>
     <compiler-plugin.version>3.13.0</compiler-plugin.version>
     <surefire-plugin.version>3.3.1</surefire-plugin.version>
+    <jandex-plugin.version>3.2.3</jandex-plugin.version>
   </properties>
 
   <dependencyManagement>
@@ -31,69 +32,46 @@
   </dependencyManagement>
 
   <dependencies>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-hibernate-orm-panache</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-jdbc-postgresql</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-flyway</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-smallrye-reactive-messaging-kafka</artifactId>
-    </dependency>
+    <!-- CDI annotations and runtime (@ApplicationScoped, @Startup, @Inject, etc.) -->
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-arc</artifactId>
     </dependency>
+    <!-- Health check support -->
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-smallrye-health</artifactId>
     </dependency>
+    <!-- YAML parsing — brings in jackson-databind and SnakeYAML transitively -->
     <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-logging-json</artifactId>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
     </dependency>
-
-    <!-- Consumer map shared library -->
+    <!-- MicroProfile Config API for @ConfigProperty — provided by consuming Quarkus services at runtime -->
     <dependency>
-      <groupId>uk.co.neversoft</groupId>
-      <artifactId>lib-consumer-map</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
+      <groupId>org.eclipse.microprofile.config</groupId>
+      <artifactId>microprofile-config-api</artifactId>
+      <scope>provided</scope>
     </dependency>
-
     <!-- Test -->
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit5</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-in-memory</artifactId>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>
     <plugins>
+      <!-- Jandex index so consuming Quarkus apps can discover CDI beans in this JAR -->
       <plugin>
-        <groupId>${quarkus.platform.group-id}</groupId>
-        <artifactId>quarkus-maven-plugin</artifactId>
-        <version>${quarkus.platform.version}</version>
-        <extensions>true</extensions>
+        <groupId>io.smallrye</groupId>
+        <artifactId>jandex-maven-plugin</artifactId>
+        <version>${jandex-plugin.version}</version>
         <executions>
           <execution>
-            <goals>
-              <goal>build</goal>
-              <goal>generate-code</goal>
-              <goal>generate-code-tests</goal>
-            </goals>
+            <id>make-index</id>
+            <goals><goal>jandex</goal></goals>
           </execution>
         </executions>
       </plugin>
@@ -116,17 +94,4 @@
       </plugin>
     </plugins>
   </build>
-
-  <profiles>
-    <profile>
-      <id>native</id>
-      <activation>
-        <property><name>native</name></property>
-      </activation>
-      <properties>
-        <skipITs>false</skipITs>
-        <quarkus.native.enabled>true</quarkus.native.enabled>
-      </properties>
-    </profile>
-  </profiles>
 </project>

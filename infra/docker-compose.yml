@@ -169,6 +169,8 @@ services:
       - "8081:8081"
     environment:
       QUARKUS_PROFILE: prod
+    volumes:
+      - ../consumer-map.yml:/config/consumer-map.yml:ro
     depends_on:
       postgres-validate:
         condition: service_healthy
@@ -188,6 +190,8 @@ services:
       - "8082:8082"
     environment:
       QUARKUS_PROFILE: prod
+    volumes:
+      - ../consumer-map.yml:/config/consumer-map.yml:ro
     depends_on:
       postgres-risk:
         condition: service_healthy
@@ -207,6 +211,8 @@ services:
       - "8084:8084"
     environment:
       QUARKUS_PROFILE: prod
+    volumes:
+      - ../consumer-map.yml:/config/consumer-map.yml:ro
     depends_on:
       postgres-audit:
         condition: service_healthy

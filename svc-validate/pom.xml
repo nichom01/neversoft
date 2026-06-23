@@ -88,6 +88,13 @@
       <version>${drools.version}</version>
     </dependency>
 
+    <!-- Consumer map shared library -->
+    <dependency>
+      <groupId>uk.co.neversoft</groupId>
+      <artifactId>lib-consumer-map</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+
     <!-- Test -->
     <dependency>
       <groupId>io.quarkus</groupId>

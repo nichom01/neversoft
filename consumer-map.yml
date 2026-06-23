@@ -1,0 +1,33 @@
+version: "1.0"
+
+hot-reload:
+  enabled-environments:
+    - local
+    - dev
+    - staging
+  poll-interval-seconds: 30
+
+events:
+  declarations.created:
+    consumers:
+      - service: svc-validate
+        channel: declarations-created
+        enabled: true
+      - service: svc-audit
+        channel: audit-declarations
+        enabled: true
+
+  validations.completed:
+    consumers:
+      - service: svc-risk
+        channel: validations-completed
+        enabled: true
+      - service: svc-audit
+        channel: audit-validations
+        enabled: true
+
+  risk.assessed:
+    consumers:
+      - service: svc-audit
+        channel: audit-risk
+        enabled: true
