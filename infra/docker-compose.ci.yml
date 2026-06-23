@@ -10,8 +10,8 @@ services:
 
   svc-audit:
     build:
-      dockerfile: Dockerfile.jvm
+      dockerfile: svc-audit/Dockerfile.jvm
 
   svc-risk:
     build:
-      dockerfile: Dockerfile.jvm
+      dockerfile: svc-risk/Dockerfile.jvm
