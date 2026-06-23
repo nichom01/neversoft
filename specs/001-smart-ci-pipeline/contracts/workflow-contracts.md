@@ -23,7 +23,7 @@ Each reusable workflow in `.github/workflows/` is a callable unit. This document
 
 | Output              | Type    | Description                                              |
 |---------------------|---------|----------------------------------------------------------|
-| `affected_modules`  | string  | JSON array of module names, e.g. `["declare-svc"]`      |
+| `affected_modules`  | string  | JSON array of module names, e.g. `["svc-declare"]`      |
 | `run_all`           | string  | `"true"` if root-level files changed                    |
 | `run_it_tests`      | string  | `"true"` if IT tests should be triggered                |
 | `detection_source`  | string  | `detected` \| `manual` \| `full-fallback`               |
@@ -33,7 +33,7 @@ Each reusable workflow in `.github/workflows/` is a callable unit. This document
 - If `modules` input is a list → return that list as-is (`detection_source: manual`)
 - Otherwise, run `git diff --name-only <base_ref>...HEAD` and filter paths by module directory prefixes
 - If git diff fails → set `detection_source: full-fallback`, return full module list
-- Set `run_it_tests: true` if any of `{declare-svc, audit-svc, validate-svc, risk-svc, infra, it-tests}` appear in affected modules
+- Set `run_it_tests: true` if any of `{svc-declare, svc-audit, svc-validate, svc-risk, infra, integration-tests}` appear in affected modules
 
 ---
 
@@ -47,7 +47,7 @@ Each reusable workflow in `.github/workflows/` is a callable unit. This document
 
 | Input    | Type   | Required | Default | Description                             |
 |----------|--------|----------|---------|-----------------------------------------|
-| `module` | string | Yes      | —       | Module directory name (e.g. `audit-svc`) |
+| `module` | string | Yes      | —       | Module directory name (e.g. `svc-audit`) |
 | `ref`    | string | No       | (triggering SHA) | Git ref to check out          |
 
 **Outputs**:
@@ -98,7 +98,7 @@ Each reusable workflow in `.github/workflows/` is a callable unit. This document
 
 ### `test-integration.yml`
 
-**Purpose**: Run the full integration test suite from the `it-tests` module using Maven Failsafe.
+**Purpose**: Run the full integration test suite from the `integration-tests` module using Maven Failsafe.
 
 **Trigger**: `workflow_call`
 
@@ -122,7 +122,7 @@ Each reusable workflow in `.github/workflows/` is a callable unit. This document
 - Set up Java 21
 - Start environment: `docker compose -f infra/docker-compose.yml up -d`
 - Wait for services to be healthy (readiness check via Docker health status)
-- Run `mvn -f it-tests/pom.xml verify -Dsurefire.skip=true`
+- Run `mvn -f integration-tests/pom.xml verify -Dsurefire.skip=true`
 - Tear down environment: `docker compose -f infra/docker-compose.yml down`
 - Report status via job outputs
 

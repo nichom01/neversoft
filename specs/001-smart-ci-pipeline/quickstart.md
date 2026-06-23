@@ -20,19 +20,19 @@ This guide describes how to validate that the pipeline works correctly after imp
 
 **Steps**:
 1. Create a feature branch from `main`
-2. Modify a file inside `declare-svc/` (e.g., add a comment to any `.java` file)
+2. Modify a file inside `svc-declare/` (e.g., add a comment to any `.java` file)
 3. Open a pull request targeting `main`
 4. Observe the `pr-pipeline` workflow triggered under "Actions" in the PR
 
 **Expected outcomes**:
-- `detect-changes` job completes and outputs `affected_modules: ["declare-svc"]`
-- `build` matrix runs **one** job: `declare-svc`
-- `unit-test` matrix runs **one** job: `declare-svc`
-- `integration` job is triggered (because `declare-svc` is a service module that affects IT tests)
-- All other services (`audit-svc`, `validate-svc`, `risk-svc`) are **not** present as matrix jobs
+- `detect-changes` job completes and outputs `affected_modules: ["svc-declare"]`
+- `build` matrix runs **one** job: `svc-declare`
+- `unit-test` matrix runs **one** job: `svc-declare`
+- `integration` job is triggered (because `svc-declare` is a service module that affects IT tests)
+- All other services (`svc-audit`, `svc-validate`, `svc-risk`) are **not** present as matrix jobs
 - PR shows all checks green
 
-**Verification**: In the Actions run, expand the `detect` job step output and confirm `affected_modules` contains only `["declare-svc"]`.
+**Verification**: In the Actions run, expand the `detect` job step output and confirm `affected_modules` contains only `["svc-declare"]`.
 
 ---
 
@@ -42,11 +42,11 @@ This guide describes how to validate that the pipeline works correctly after imp
 
 **Steps**:
 1. Create a feature branch from `main`
-2. Modify files in both `declare-svc/` and `audit-svc/`
+2. Modify files in both `svc-declare/` and `svc-audit/`
 3. Open a pull request targeting `main`
 
 **Expected outcomes**:
-- `detect-changes` outputs `affected_modules: ["declare-svc", "audit-svc"]` (order may vary)
+- `detect-changes` outputs `affected_modules: ["svc-declare", "svc-audit"]` (order may vary)
 - `build` matrix runs **two** jobs in parallel
 - `unit-test` matrix runs **two** jobs in parallel
 - `integration` job runs after both unit-test jobs complete
@@ -79,12 +79,12 @@ This guide describes how to validate that the pipeline works correctly after imp
 1. Go to the repository's **Actions** tab in GitHub
 2. Select the **On-Demand Pipeline** workflow
 3. Click **Run workflow**
-4. Set `modules` to `audit-svc` and `ref` to `main`
+4. Set `modules` to `svc-audit` and `ref` to `main`
 5. Click **Run workflow**
 
 **Expected outcomes**:
-- Only `audit-svc` appears in build and unit-test matrix jobs
-- Integration tests run (because `audit-svc` is a service module)
+- Only `svc-audit` appears in build and unit-test matrix jobs
+- Integration tests run (because `svc-audit` is a service module)
 - Run summary is posted as a job summary (visible in the workflow run)
 
 ---
@@ -110,12 +110,12 @@ This guide describes how to validate that the pipeline works correctly after imp
 **What to validate**: A build or test failure in one module does not prevent other modules from running.
 
 **Steps**:
-1. Introduce a deliberate compilation error in `declare-svc` (e.g., remove a semicolon)
-2. Open a PR that changes both `declare-svc` and `audit-svc`
+1. Introduce a deliberate compilation error in `svc-declare` (e.g., remove a semicolon)
+2. Open a PR that changes both `svc-declare` and `svc-audit`
 
 **Expected outcomes**:
-- `declare-svc` build job **fails**
-- `audit-svc` build job **still runs** and may pass
+- `svc-declare` build job **fails**
+- `svc-audit` build job **still runs** and may pass
 - `unit-test` jobs for passing modules still run
 - PR is marked as failed with a clear indication of which module failed
 

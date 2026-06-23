@@ -11,7 +11,7 @@ A proof-of-concept demonstrating event-driven microservices using **Quarkus**, *
                          │
                          ▼
               ┌─────────────────────┐
-              │   declare-svc       │  :8080
+              │   svc-declare       │  :8080
               │   REST → Outbox     │
               └──────────┬──────────┘
                          │ Debezium CDC
@@ -25,7 +25,7 @@ A proof-of-concept demonstrating event-driven microservices using **Quarkus**, *
            │                       │
            ▼                       ▼
 ┌─────────────────────┐   ┌─────────────────────┐
-│   validate-svc      │   │     audit-svc        │
+│   svc-validate      │   │     svc-audit        │
 │   Drools rules      │   │   Observer / log     │
 │   :8081             │   │   :8084              │
 └──────────┬──────────┘   └─────────────────────┘
@@ -40,7 +40,7 @@ A proof-of-concept demonstrating event-driven microservices using **Quarkus**, *
   │                 │
   ▼                 ▼
 ┌────────────┐  ┌─────────────────────┐
-│  risk-svc  │  │      audit-svc      │
+│  svc-risk  │  │      svc-audit      │
 │  :8082     │  │    Observer / log   │
 └─────┬──────┘  └─────────────────────┘
       │ Debezium CDC
@@ -52,7 +52,7 @@ A proof-of-concept demonstrating event-driven microservices using **Quarkus**, *
          │
          ▼
 ┌─────────────────────┐
-│      audit-svc      │
+│      svc-audit      │
 │    Observer / log   │
 └─────────────────────┘
 ```
@@ -72,12 +72,12 @@ A proof-of-concept demonstrating event-driven microservices using **Quarkus**, *
 
 | Service | Port | Role | Mode |
 |---|---|---|---|
-| `declare-svc` | 8080 | REST entry point, writes declarations | Native |
-| `validate-svc` | 8081 | Applies Drools business rules | JVM* |
-| `risk-svc` | 8082 | Risk scoring (stub: always LOW) | Native |
-| `audit-svc` | 8084 | Passive observer, logs all events | Native |
+| `svc-declare` | 8080 | REST entry point, writes declarations | Native |
+| `svc-validate` | 8081 | Applies Drools business rules | JVM* |
+| `svc-risk` | 8082 | Risk scoring (stub: always LOW) | Native |
+| `svc-audit` | 8084 | Passive observer, logs all events | Native |
 
-*`validate-svc` runs in JVM mode because Drools DRL compilation is incompatible with GraalVM native. Migration to `quarkus-drools` is required for native support.
+*`svc-validate` runs in JVM mode because Drools DRL compilation is incompatible with GraalVM native. Migration to `quarkus-drools` is required for native support.
 
 ---
 
@@ -118,17 +118,17 @@ cd infra
 docker compose up --wait -d
 
 # 3. Check health
-curl http://localhost:8080/q/health/ready   # declare-svc
-curl http://localhost:8081/q/health/ready   # validate-svc
-curl http://localhost:8082/q/health/ready   # risk-svc
-curl http://localhost:8084/q/health/ready   # audit-svc
+curl http://localhost:8080/q/health/ready   # svc-declare
+curl http://localhost:8081/q/health/ready   # svc-validate
+curl http://localhost:8082/q/health/ready   # svc-risk
+curl http://localhost:8084/q/health/ready   # svc-audit
 ```
 
 > The Debezium connectors must be registered after the stack is running. See [Debezium Setup](#debezium-setup) below.
 
 ### Submit a Declaration
 
-Three customer IDs are pre-seeded in `validate-svc` and will pass validation:
+Three customer IDs are pre-seeded in `svc-validate` and will pass validation:
 
 ```bash
 # Happy path — known customer, passes validation
@@ -213,7 +213,7 @@ Each connector monitors its service's `outbox` table via PostgreSQL WAL (`wal_le
 Each service runs independently in Quarkus dev mode. There is no top-level Maven aggregator, so `cd` into the service directory first.
 
 ```bash
-cd declare-svc    # or validate-svc / risk-svc / audit-svc
+cd svc-declare    # or svc-validate / svc-risk / svc-audit
 mvn quarkus:dev
 ```
 
@@ -233,46 +233,46 @@ Pure logic tests with no external dependencies. Fast, no containers required.
 
 ```bash
 # Run unit tests for a single service
-cd declare-svc
+cd svc-declare
 mvn test -pl . -Dtest="**/unit/**"
 
 # Or for any service
-cd validate-svc && mvn test -Dtest="**/unit/**"
-cd risk-svc     && mvn test -Dtest="**/unit/**"
-cd audit-svc    && mvn test -Dtest="**/unit/**"
+cd svc-validate && mvn test -Dtest="**/unit/**"
+cd svc-risk     && mvn test -Dtest="**/unit/**"
+cd svc-audit    && mvn test -Dtest="**/unit/**"
 ```
 
 | Service | Unit tests |
 |---|---|
-| `declare-svc` | `OutboxPayloadTest` |
-| `validate-svc` | `CustomerValidationRuleTest`, `ValidationPayloadTest` |
-| `risk-svc` | `StubRiskScorerTest`, `RiskPayloadTest` |
-| `audit-svc` | `AuditDeduplicationTest` |
+| `svc-declare` | `OutboxPayloadTest` |
+| `svc-validate` | `CustomerValidationRuleTest`, `ValidationPayloadTest` |
+| `svc-risk` | `StubRiskScorerTest`, `RiskPayloadTest` |
+| `svc-audit` | `AuditDeduplicationTest` |
 
 #### Component Tests
 
 Per-service acceptance tests. Testcontainers provisions a real PostgreSQL instance; Kafka channels use in-memory connectors. Docker must be running.
 
 ```bash
-cd declare-svc
+cd svc-declare
 mvn test -Dtest="**/component/**"
 
-cd validate-svc && mvn test -Dtest="**/component/**"
-cd risk-svc     && mvn test -Dtest="**/component/**"
-cd audit-svc    && mvn test -Dtest="**/component/**"
+cd svc-validate && mvn test -Dtest="**/component/**"
+cd svc-risk     && mvn test -Dtest="**/component/**"
+cd svc-audit    && mvn test -Dtest="**/component/**"
 ```
 
 | Service | Component tests |
 |---|---|
-| `declare-svc` | `DeclarationResourceTest` |
-| `validate-svc` | `ValidationServiceTest` |
-| `risk-svc` | `RiskServiceTest` |
-| `audit-svc` | `AuditServiceTest` |
+| `svc-declare` | `DeclarationResourceTest` |
+| `svc-validate` | `ValidationServiceTest` |
+| `svc-risk` | `RiskServiceTest` |
+| `svc-audit` | `AuditServiceTest` |
 
 To run unit and component tests together for a service:
 
 ```bash
-cd declare-svc
+cd svc-declare
 mvn test
 ```
 
@@ -291,7 +291,7 @@ curl -X POST http://localhost:8083/connectors -H "Content-Type: application/json
 curl -X POST http://localhost:8083/connectors -H "Content-Type: application/json" -d @debezium/risk-connector.json
 
 # 3. Run the integration test suite
-cd ../it-tests
+cd ../integration-tests
 mvn verify -Pit
 ```
 
@@ -311,16 +311,16 @@ There is no top-level aggregator build. Build each service from its own director
 
 ```bash
 # JVM jar (all services)
-cd declare-svc && mvn clean package -DskipTests
+cd svc-declare && mvn clean package -DskipTests
 
 # Native image (declare, risk, audit)
-cd declare-svc && mvn package -Pnative -DskipTests
+cd svc-declare && mvn package -Pnative -DskipTests
 
-# JVM image only — validate-svc cannot build native (Drools incompatibility)
-cd validate-svc && mvn clean package -DskipTests
+# JVM image only — svc-validate cannot build native (Drools incompatibility)
+cd svc-validate && mvn clean package -DskipTests
 ```
 
-Docker images use a two-stage build: GraalVM Mandrel compiles the native binary in stage one; stage two copies it into a minimal `quarkus-micro-image:2.0` runtime targeting < 100 MB. `validate-svc` uses an OpenJDK 21 JRE image (`Dockerfile.jvm`) instead.
+Docker images use a two-stage build: GraalVM Mandrel compiles the native binary in stage one; stage two copies it into a minimal `quarkus-micro-image:2.0` runtime targeting < 100 MB. `svc-validate` uses an OpenJDK 21 JRE image (`Dockerfile.jvm`) instead.
 
 ---
 
@@ -345,10 +345,10 @@ infra/
 | `postgres-risk` | postgres:16 | 5434 |
 | `postgres-audit` | postgres:16 | 5435 |
 | `debezium-connect` | debezium/connect:2.6 | 8083 |
-| `declare-svc` | — | 8080 |
-| `validate-svc` | — | 8081 |
-| `risk-svc` | — | 8082 |
-| `audit-svc` | — | 8084 |
+| `svc-declare` | — | 8080 |
+| `svc-validate` | — | 8081 |
+| `svc-risk` | — | 8082 |
+| `svc-audit` | — | 8084 |
 
 ---
 
@@ -356,27 +356,27 @@ infra/
 
 Each service owns an isolated database, managed by Flyway migrations.
 
-**declare-svc** — `postgres-declare:5432/declare`
+**svc-declare** — `postgres-declare:5432/declare`
 - `declarations` — incoming declarations with idempotency key
 - `outbox` — transactional outbox for CDC
 
-**validate-svc** — `postgres-validate:5433/validate`
+**svc-validate** — `postgres-validate:5433/validate`
 - `customers` — reference table (3 UUIDs pre-seeded)
 - `validations` — results with outcome (`PASSED`/`FAILED`) and rules applied
 - `outbox`
 
-**risk-svc** — `postgres-risk:5434/risk`
+**svc-risk** — `postgres-risk:5434/risk`
 - `risk_assessments` — score (decimal), band (`LOW`/`MEDIUM`/`HIGH`)
 - `outbox`
 
-**audit-svc** — `postgres-audit:5435/audit`
+**svc-audit** — `postgres-audit:5435/audit`
 - `audit_log` — immutable; raw JSON payload preserved exactly as received
 
 ---
 
 ## API Reference
 
-`declare-svc` is the only service with a public HTTP API. All others are event-driven.
+`svc-declare` is the only service with a public HTTP API. All others are event-driven.
 
 ### POST /declarations
 
@@ -403,12 +403,12 @@ Health endpoints are available on all services at `/q/health` and `/q/health/rea
 
 ## Known Constraints (PoC Scope)
 
-- **validate-svc runs JVM-only** — Drools runtime DRL compilation is incompatible with GraalVM native. Requires migration to the `quarkus-drools` extension.
+- **svc-validate runs JVM-only** — Drools runtime DRL compilation is incompatible with GraalVM native. Requires migration to the `quarkus-drools` extension.
 - **Risk scorer is a stub** — `StubRiskScorer` always returns `score=0.0, band=LOW`. The `RiskScorer` interface is in place for a real implementation.
 - **No dead-letter queue** — poison pill messages will block the consumer. DLQ handling is out of scope.
 - **Single Kafka broker** — no multi-broker failover. Not suitable for production as-is.
 - **No schema registry** — events are plain JSON; versioning is manual.
-- **No audit query API** — `audit-svc` has no REST endpoint; data is accessible via direct DB connection only.
+- **No audit query API** — `svc-audit` has no REST endpoint; data is accessible via direct DB connection only.
 - **Outbox rows retained indefinitely** — no cleanup strategy implemented.
 - **Debezium connectors require manual registration** — not auto-registered on stack start.
 
@@ -418,11 +418,11 @@ Health endpoints are available on all services at `/q/health` and `/q/health/rea
 
 ```
 neversoft/
-├── declare-svc/          # REST entry point
-├── validate-svc/         # Drools rules engine consumer
-├── risk-svc/             # Risk scoring consumer
-├── audit-svc/            # Passive audit observer
-├── it-tests/             # End-to-end integration tests
+├── svc-declare/          # REST entry point
+├── svc-validate/         # Drools rules engine consumer
+├── svc-risk/             # Risk scoring consumer
+├── svc-audit/            # Passive audit observer
+├── integration-tests/             # End-to-end integration tests
 ├── infra/                # Docker Compose + Debezium configs
 └── docs/
     ├── prd-microservices.md   # Product requirements

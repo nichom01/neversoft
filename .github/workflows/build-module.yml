@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       module:
-        description: "Module directory name (e.g. declare-svc)"
+        description: "Module directory name (e.g. svc-declare)"
         type: string
         required: true
       ref:

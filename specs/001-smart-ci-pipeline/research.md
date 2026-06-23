@@ -33,7 +33,7 @@
 
 **Decision**: Modules are identified by the set of known top-level service directories; the list is maintained as a static array in the detection workflow
 
-**Rationale**: The repository has a fixed, small number of services (`declare-svc`, `audit-svc`, `validate-svc`, `risk-svc`). A hardcoded list is simpler and more auditable than directory auto-discovery. When a new service is added, updating the list is a one-line change to the detection workflow.
+**Rationale**: The repository has a fixed, small number of services (`svc-declare`, `svc-audit`, `svc-validate`, `svc-risk`). A hardcoded list is simpler and more auditable than directory auto-discovery. When a new service is added, updating the list is a one-line change to the detection workflow.
 
 **Alternatives considered**:
 - Auto-discovery via `find . -maxdepth 1 -name "*-svc" -type d` — flexible but hides the module set from code review; easy to accidentally include scratch dirs
@@ -47,7 +47,7 @@
 
 **Decision**: Use GitHub Actions matrix strategy to run module builds and tests in parallel
 
-**Rationale**: Independent modules (declare-svc, audit-svc, validate-svc, risk-svc) have no runtime dependency on each other. Running them in parallel reduces total wall-clock time proportionally.
+**Rationale**: Independent modules (svc-declare, svc-audit, svc-validate, svc-risk) have no runtime dependency on each other. Running them in parallel reduces total wall-clock time proportionally.
 
 **Alternatives considered**:
 - Sequential `needs:` chain — simpler but slower; each module waits for the previous one
@@ -59,21 +59,21 @@
 
 ## Integration Tests Placement
 
-**Decision**: Integration tests (`it-tests` module) run as a separate job that is triggered when any service module changes or when `infra/` changes
+**Decision**: Integration tests (`integration-tests` module) run as a separate job that is triggered when any service module changes or when `infra/` changes
 
 **Rationale**: Integration tests require a running environment (Docker Compose with PostgreSQL/Debezium). They are slow and environment-dependent. They should run after all unit tests pass, not in parallel with per-module unit tests.
 
 **Alternatives considered**:
 - Always run IT tests on every PR — wastes time when only documentation changed
-- Run IT tests only when `it-tests/` directory changes — misses the case where a service change breaks integration behaviour
+- Run IT tests only when `integration-tests/` directory changes — misses the case where a service change breaks integration behaviour
 
-**Resolution**: If `detect` identifies any of `{declare-svc, audit-svc, validate-svc, risk-svc, infra, it-tests}` as changed, the IT tests job is enqueued after unit tests pass. The IT tests job uses Docker Compose to spin up the environment.
+**Resolution**: If `detect` identifies any of `{svc-declare, svc-audit, svc-validate, svc-risk, infra, integration-tests}` as changed, the IT tests job is enqueued after unit tests pass. The IT tests job uses Docker Compose to spin up the environment.
 
 ---
 
 ## Maven Build Commands
 
-**Decision**: Per-module Maven build uses `mvn -pl <module> -am package -DskipTests`; unit tests use `mvn -pl <module> -am test`; IT tests use `mvn -pl it-tests -am verify -Dsurefire.skip=true`
+**Decision**: Per-module Maven build uses `mvn -pl <module> -am package -DskipTests`; unit tests use `mvn -pl <module> -am test`; IT tests use `mvn -pl integration-tests -am verify -Dsurefire.skip=true`
 
 **Rationale**: `-pl <module>` scopes the build to one module; `-am` (also-make) includes required upstream dependencies. This is idiomatic Maven and works without a root aggregator POM.
 

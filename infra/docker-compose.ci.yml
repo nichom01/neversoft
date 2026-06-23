@@ -1,17 +1,17 @@
 # CI override: use JVM-mode Dockerfiles instead of native builds.
 # Usage: docker compose -f docker-compose.yml -f docker-compose.ci.yml [command]
 #
-# Native image builds (declare-svc, audit-svc, risk-svc) take 15-20 minutes each.
+# Native image builds (svc-declare, svc-audit, svc-risk) take 15-20 minutes each.
 # JVM builds take ~3-5 minutes and are sufficient for integration test validation.
 services:
-  declare-svc:
+  svc-declare:
     build:
       dockerfile: Dockerfile.jvm
 
-  audit-svc:
+  svc-audit:
     build:
       dockerfile: Dockerfile.jvm
 
-  risk-svc:
+  svc-risk:
     build:
       dockerfile: Dockerfile.jvm

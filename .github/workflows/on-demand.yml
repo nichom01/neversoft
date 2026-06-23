@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       modules:
-        description: "Modules to test: 'all' or comma-separated names (e.g. declare-svc,audit-svc)"
+        description: "Modules to test: 'all' or comma-separated names (e.g. svc-declare,svc-audit)"
         type: string
         default: 'all'
       ref:

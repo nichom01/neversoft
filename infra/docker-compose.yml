@@ -142,9 +142,9 @@ services:
       retries: 15
 
   # ── Application services ─────────────────────────────────────────────────────
-  declare-svc:
+  svc-declare:
     build:
-      context: ../declare-svc
+      context: ../svc-declare
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
@@ -161,9 +161,9 @@ services:
       timeout: 5s
       retries: 10
 
-  validate-svc:
+  svc-validate:
     build:
-      context: ../validate-svc
+      context: ../svc-validate
       dockerfile: Dockerfile.jvm
     ports:
       - "8081:8081"
@@ -180,9 +180,9 @@ services:
       timeout: 5s
       retries: 10
 
-  risk-svc:
+  svc-risk:
     build:
-      context: ../risk-svc
+      context: ../svc-risk
       dockerfile: Dockerfile
     ports:
       - "8082:8082"
@@ -199,9 +199,9 @@ services:
       timeout: 5s
       retries: 10
 
-  audit-svc:
+  svc-audit:
     build:
-      context: ../audit-svc
+      context: ../svc-audit
       dockerfile: Dockerfile
     ports:
       - "8084:8084"

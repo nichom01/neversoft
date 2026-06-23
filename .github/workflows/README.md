@@ -30,7 +30,7 @@ Composable CI pipeline for the Neversoft monorepo. Each reusable workflow is a s
 
 | Output | Type | Description |
 |--------|------|-------------|
-| `affected_modules` | string | JSON array of buildable modules e.g. `["declare-svc"]` |
+| `affected_modules` | string | JSON array of buildable modules e.g. `["svc-declare"]` |
 | `has_buildable_changes` | string | `"true"` if `affected_modules` is non-empty |
 | `run_it_tests` | string | `"true"` if IT tests should run |
 | `run_all` | string | `"true"` if all modules are included |
@@ -44,7 +44,7 @@ Composable CI pipeline for the Neversoft monorepo. Each reusable workflow is a s
 
 | Input | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `module` | string | Yes | — | Module directory name (e.g. `declare-svc`) |
+| `module` | string | Yes | — | Module directory name (e.g. `svc-declare`) |
 | `ref` | string | No | `''` | Git ref to check out |
 
 **Outputs**
@@ -119,7 +119,7 @@ on:
       module:
         description: "Module to build"
         type: string
-        default: "declare-svc"
+        default: "svc-declare"
 
 jobs:
   build:
@@ -176,11 +176,11 @@ jobs:
 
 | Module | Type | Unit tests | Triggers IT tests |
 |--------|------|-----------|-------------------|
-| `declare-svc` | Quarkus service | Yes | Yes |
-| `audit-svc` | Quarkus service | Yes | Yes |
-| `validate-svc` | Quarkus service (JVM) | Yes | Yes |
-| `risk-svc` | Quarkus service | Yes | Yes |
-| `it-tests` | Failsafe suite | No | Yes (is the IT suite) |
+| `svc-declare` | Quarkus service | Yes | Yes |
+| `svc-audit` | Quarkus service | Yes | Yes |
+| `svc-validate` | Quarkus service (JVM) | Yes | Yes |
+| `svc-risk` | Quarkus service | Yes | Yes |
+| `integration-tests` | Failsafe suite | No | Yes (is the IT suite) |
 | `infra` | Docker Compose | No | Yes |
 
 To add a new service module: add its directory name to the `BUILDABLE_MODULES` array in `detect-changes.yml`.

@@ -29,10 +29,10 @@ check() {
   fi
 }
 
-check declare-svc
-check validate-svc
-check risk-svc
-check audit-svc
+check svc-declare
+check svc-validate
+check svc-risk
+check svc-audit
 
 if [ "$FAILED" -ne 0 ]; then
   echo ""

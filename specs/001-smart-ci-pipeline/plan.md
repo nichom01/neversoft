@@ -66,11 +66,11 @@ infra/
 ├── docker-compose.yml           # Existing — used by test-integration.yml
 └── debezium/                    # Existing
 
-declare-svc/pom.xml              # Existing Maven module
-audit-svc/pom.xml                # Existing Maven module
-validate-svc/pom.xml             # Existing Maven module
-risk-svc/pom.xml                 # Existing Maven module
-it-tests/pom.xml                 # Existing Maven IT module
+svc-declare/pom.xml              # Existing Maven module
+svc-audit/pom.xml                # Existing Maven module
+svc-validate/pom.xml             # Existing Maven module
+svc-risk/pom.xml                 # Existing Maven module
+integration-tests/pom.xml                 # Existing Maven IT module
 ```
 
 **Structure Decision**: Single `.github/workflows/` directory containing both reusable workflows (prefixed by role: `detect-`, `build-`, `test-`) and orchestrating workflows (`pr-pipeline`, `on-demand`). No new source directories required — the pipeline infrastructure sits entirely within `.github/`.

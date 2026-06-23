@@ -10,7 +10,7 @@ A discrete service or test module in the repository.
 
 | Field         | Type     | Description                                              |
 |---------------|----------|----------------------------------------------------------|
-| `name`        | string   | Directory name (e.g., `declare-svc`, `audit-svc`)       |
+| `name`        | string   | Directory name (e.g., `svc-declare`, `svc-audit`)       |
 | `path`        | string   | Relative path from repo root (same as name for top-level modules) |
 | `type`        | enum     | `service` \| `integration-tests` \| `infra`             |
 | `build_cmd`   | string   | Maven command to build this module                       |
@@ -20,11 +20,11 @@ A discrete service or test module in the repository.
 
 | Name          | Type                | Triggers IT tests when changed |
 |---------------|---------------------|-------------------------------|
-| `declare-svc` | service             | Yes                           |
-| `audit-svc`   | service             | Yes                           |
-| `validate-svc`| service             | Yes                           |
-| `risk-svc`    | service             | Yes                           |
-| `it-tests`    | integration-tests   | Yes (always)                  |
+| `svc-declare` | service             | Yes                           |
+| `svc-audit`   | service             | Yes                           |
+| `svc-validate`| service             | Yes                           |
+| `svc-risk`    | service             | Yes                           |
+| `integration-tests` | integration-tests   | Yes (always)                  |
 | `infra`       | infra               | Yes                           |
 
 ---
@@ -50,7 +50,7 @@ Derived from Change Set by matching changed file paths against known module dire
 |--------------------|----------|----------------------------------------------------------|
 | `modules`          | string[] | Names of modules with at least one changed file          |
 | `run_all`          | boolean  | `true` if root-level or shared files changed (forces full run) |
-| `run_it_tests`     | boolean  | `true` if any service, infra, or it-tests module is affected |
+| `run_it_tests`     | boolean  | `true` if any service, infra, or integration-tests module is affected |
 | `source`           | enum     | `detected` \| `manual` \| `full-fallback`               |
 
 **`source` values**:
@@ -96,7 +96,7 @@ Each reusable workflow exposes typed inputs and outputs. These are the "interfac
 ### `detect-changes` outputs
 
 ```
-affected_modules: JSON array string — e.g., '["declare-svc","audit-svc"]'
+affected_modules: JSON array string — e.g., '["svc-declare","svc-audit"]'
 run_all:          boolean string    — 'true' or 'false'
 run_it_tests:     boolean string    — 'true' or 'false'
 detection_source: string            — 'detected' | 'manual' | 'full-fallback'

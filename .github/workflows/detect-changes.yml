@@ -15,7 +15,7 @@ on:
         default: ''
     outputs:
       affected_modules:
-        description: "JSON array of buildable service modules with changes e.g. [\"declare-svc\"]"
+        description: "JSON array of buildable service modules with changes e.g. [\"svc-declare\"]"
         value: ${{ jobs.detect.outputs.affected_modules }}
       has_buildable_changes:
         description: "'true' if affected_modules is non-empty"
@@ -54,13 +54,13 @@ jobs:
         shell: bash
         run: |
           # Modules that have a Maven build and unit tests
-          BUILDABLE_MODULES=(declare-svc audit-svc validate-svc risk-svc)
+          BUILDABLE_MODULES=(svc-declare svc-audit svc-validate svc-risk)
 
           # Directories whose changes trigger the integration test suite
-          IT_TRIGGER_DIRS=(declare-svc audit-svc validate-svc risk-svc it-tests infra)
+          IT_TRIGGER_DIRS=(svc-declare svc-audit svc-validate svc-risk integration-tests infra)
 
           # All top-level directories tracked by the repo; anything else = root-level change
-          ALL_TRACKED_DIRS=(declare-svc audit-svc validate-svc risk-svc it-tests infra
+          ALL_TRACKED_DIRS=(svc-declare svc-audit svc-validate svc-risk integration-tests infra
                             docs specs .github .specify .claude README.md CLAUDE.md
                             .gitignore prd-microservices.md)
 
