@@ -54,7 +54,7 @@ jobs:
 
       - name: Run unit tests — ${{ inputs.module }}
         id: test
-        run: mvn -f "${{ inputs.module }}/pom.xml" test -B -q
+        run: mvn -f "${{ inputs.module }}/pom.xml" test -B
 
       - name: Parse Surefire results
         id: surefire
@@ -94,3 +94,27 @@ jobs:
           echo "tests_run=${{ env.tests_run }}"       >> "$GITHUB_OUTPUT"
           echo "tests_failed=${{ env.tests_failed }}" >> "$GITHUB_OUTPUT"
           echo "duration_s=$DURATION"                 >> "$GITHUB_OUTPUT"
+
+      - name: Write step summary
+        if: always()
+        run: |
+          TESTS_RUN="${{ env.tests_run }}"
+          TESTS_FAILED="${{ env.tests_failed }}"
+          DURATION=$(( $(date +%s) - ${{ env.start }} ))
+          if [ "${{ steps.test.outcome }}" = "success" ]; then
+            STATUS="✅ passed"
+          else
+            STATUS="❌ failed"
+          fi
+          TESTS_PASSED=$(( TESTS_RUN - TESTS_FAILED ))
+          {
+            echo "### Unit Tests — ${{ inputs.module }}"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Status** | $STATUS |"
+            echo "| **Tests run** | $TESTS_RUN |"
+            echo "| **Passed** | $TESTS_PASSED |"
+            echo "| **Failed** | $TESTS_FAILED |"
+            echo "| **Duration** | ${DURATION}s |"
+          } >> "$GITHUB_STEP_SUMMARY"
