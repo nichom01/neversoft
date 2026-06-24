@@ -18,6 +18,12 @@ on:
       duration_s:
         description: "Wall-clock seconds for the build job"
         value: ${{ jobs.build.outputs.duration_s }}
+      image_published:
+        description: "'true' if image was successfully pushed to GHCR"
+        value: ${{ jobs.docker-publish.outputs.image_published }}
+      image_ref:
+        description: "Fully-qualified image reference with SHA tag"
+        value: ${{ jobs.docker-publish.outputs.image_ref }}
 
 jobs:
   build:
@@ -60,3 +66,85 @@ jobs:
             echo "status=failed" >> "$GITHUB_OUTPUT"
           fi
           echo "duration_s=$DURATION" >> "$GITHUB_OUTPUT"
+
+  docker-publish:
+    name: Publish image — ${{ inputs.module }}
+    runs-on: ubuntu-latest
+    needs: build
+    if: needs.build.outputs.status == 'passed'
+    permissions:
+      packages: write
+      contents: read
+    outputs:
+      image_published: ${{ steps.publish-result.outputs.image_published }}
+      image_ref:       ${{ steps.publish-result.outputs.image_ref }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ inputs.module }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push to GHCR
+        id: push
+        uses: docker/build-push-action@v6
+        continue-on-error: true
+        with:
+          context: .
+          file: ${{ inputs.module }}/Dockerfile.jvm
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Record publish result
+        id: publish-result
+        if: always()
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          if [ "${{ steps.push.outcome }}" = "success" ]; then
+            echo "image_published=true" >> "$GITHUB_OUTPUT"
+            SHA_TAG=$(echo "$TAGS" | grep "sha-" | head -1)
+            echo "image_ref=$SHA_TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "image_published=false" >> "$GITHUB_OUTPUT"
+            echo "image_ref=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Write step summary
+        if: always()
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          if [ "${{ steps.push.outcome }}" = "success" ]; then
+            STATUS="✅ published"
+          else
+            STATUS="❌ failed (non-fatal)"
+          fi
+          SHA_TAG=$(echo "$TAGS" | grep "sha-" | head -1 || echo "—")
+          {
+            echo "### Image Publish — ${{ inputs.module }}"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Status** | $STATUS |"
+            echo "| **Image** | \`$SHA_TAG\` |"
+            echo "| **Registry** | ghcr.io |"
+          } >> "$GITHUB_STEP_SUMMARY"
