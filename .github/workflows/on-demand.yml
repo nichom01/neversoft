@@ -12,6 +12,10 @@ on:
         type: string
         default: ''
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   # ── Stage 1: Resolve module scope from user input ─────────────────────────
   detect:

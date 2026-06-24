@@ -8,6 +8,10 @@ name: "Scratch: Chain Composability Test"
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build-standalone:
     name: Build svc-declare (standalone, no detect step)
