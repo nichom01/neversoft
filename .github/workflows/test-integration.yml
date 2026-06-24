@@ -60,7 +60,7 @@ jobs:
 
       - name: Run integration tests
         id: tests
-        run: mvn -f integration-tests/pom.xml verify -Pit -B -q
+        run: mvn -f integration-tests/pom.xml verify -Pit -B
 
       - name: Dump diagnostics on failure
         if: failure()
@@ -118,3 +118,27 @@ jobs:
           echo "tests_run=${{ env.tests_run }}"       >> "$GITHUB_OUTPUT"
           echo "tests_failed=${{ env.tests_failed }}" >> "$GITHUB_OUTPUT"
           echo "duration_s=$DURATION"                 >> "$GITHUB_OUTPUT"
+
+      - name: Write step summary
+        if: always()
+        run: |
+          TESTS_RUN="${{ env.tests_run }}"
+          TESTS_FAILED="${{ env.tests_failed }}"
+          DURATION=$(( $(date +%s) - ${{ env.start }} ))
+          if [ "${{ steps.tests.outcome }}" = "success" ]; then
+            STATUS="✅ passed"
+          else
+            STATUS="❌ failed"
+          fi
+          TESTS_PASSED=$(( TESTS_RUN - TESTS_FAILED ))
+          {
+            echo "### Integration Tests"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Status** | $STATUS |"
+            echo "| **Tests run** | $TESTS_RUN |"
+            echo "| **Passed** | $TESTS_PASSED |"
+            echo "| **Failed** | $TESTS_FAILED |"
+            echo "| **Duration** | ${DURATION}s |"
+          } >> "$GITHUB_STEP_SUMMARY"
