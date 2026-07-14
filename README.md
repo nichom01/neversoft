@@ -66,6 +66,7 @@ A proof-of-concept demonstrating event-driven microservices using **Quarkus**, *
 | **Consumer map** | Single `consumer-map.yml` controls which channels are active; hot-reloads in dev/staging — see [ADR-003](docs/ADR/adr-003-consumer-map.md) |
 | **Database-per-service** | Four isolated PostgreSQL instances |
 | **Topic ordering** | Partition key is `aggregateId` — order preserved per declaration |
+| **Batch consumption** | `svc-validate`, `svc-risk`, `svc-audit` consume up to 100 records per poll (configurable per channel); failures are isolated per record and dead-lettered rather than blocking the batch — see [specs/004-kafka-batch-consumption](specs/004-kafka-batch-consumption/) |
 
 ---
 
@@ -114,6 +115,24 @@ mvn install
 ```
 
 See [specs/002-event-consumer-map/](specs/002-event-consumer-map/) for the full specification, design decisions, data model, and YAML schema contract.
+
+---
+
+## Batch Consumption & Dead-Letter Topics
+
+`svc-validate`, `svc-risk`, and `svc-audit` consume Kafka records in batches (`mp.messaging.incoming.<channel>.batch=true`) instead of one at a time, up to `max.poll.records` per poll (default **100**, independently configurable per channel via `application.properties` or an environment variable override in `infra/docker-compose.yml`).
+
+A record that fails processing within a batch (malformed payload, downstream error) is republished immediately — no in-process retry — to a per-topic dead-letter queue, and the rest of the batch continues processing:
+
+| Source topic | Dead-letter topic |
+|---|---|
+| `declarations.created` | `declarations.created.dlq` |
+| `validations.completed` | `validations.completed.dlq` |
+| `risk.assessed` | `risk.assessed.dlq` |
+
+Each dead-lettered message carries the original payload, source topic, failure reason, timestamp, and originating service, so it can be inspected or manually replayed. Delivery is at-least-once — each service's per-message processing is idempotent (dedup by `eventId`), so redelivery after a mid-batch crash is safe. Batch size and per-batch success/dead-lettered counts are exposed as Micrometer metrics (`kafka.batch.size`, `kafka.batch.records.success`, `kafka.batch.records.deadlettered`) at each service's `/q/metrics` endpoint.
+
+See [specs/004-kafka-batch-consumption/](specs/004-kafka-batch-consumption/) for the full specification, design decisions, and validation guide.
 
 ---
 

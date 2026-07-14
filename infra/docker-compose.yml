@@ -50,6 +50,9 @@ services:
         kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic declarations.created --partitions 1 --replication-factor 1 --config retention.ms=604800000 &&
         kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic validations.completed --partitions 1 --replication-factor 1 --config retention.ms=604800000 &&
         kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic risk.assessed --partitions 1 --replication-factor 1 --config retention.ms=604800000 &&
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic declarations.created.dlq --partitions 1 --replication-factor 1 --config retention.ms=604800000 &&
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic validations.completed.dlq --partitions 1 --replication-factor 1 --config retention.ms=604800000 &&
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic risk.assessed.dlq --partitions 1 --replication-factor 1 --config retention.ms=604800000 &&
         echo 'All topics created.'
 
   # ── PostgreSQL instances ──────────────────────────────────────────────────────
@@ -169,6 +172,8 @@ services:
       - "8081:8081"
     environment:
       QUARKUS_PROFILE: prod
+      # Override the declarations-created batch size (default 100, set in application.properties)
+      # without a rebuild, e.g.: MP_MESSAGING_INCOMING_DECLARATIONS_CREATED_MAX_POLL_RECORDS: "50"
     volumes:
       - ../consumer-map.yml:/config/consumer-map.yml:ro
     depends_on:
@@ -190,6 +195,8 @@ services:
       - "8082:8082"
     environment:
       QUARKUS_PROFILE: prod
+      # Override the validations-completed batch size (default 100, set in application.properties)
+      # without a rebuild, e.g.: MP_MESSAGING_INCOMING_VALIDATIONS_COMPLETED_MAX_POLL_RECORDS: "50"
     volumes:
       - ../consumer-map.yml:/config/consumer-map.yml:ro
     depends_on:
@@ -211,6 +218,8 @@ services:
       - "8084:8084"
     environment:
       QUARKUS_PROFILE: prod
+      # Override any of the 3 channel batch sizes (default 100, set in application.properties)
+      # without a rebuild, e.g.: MP_MESSAGING_INCOMING_AUDIT_DECLARATIONS_MAX_POLL_RECORDS: "50"
     volumes:
       - ../consumer-map.yml:/config/consumer-map.yml:ro
     depends_on:
