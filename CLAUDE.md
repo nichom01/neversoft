@@ -6,10 +6,4 @@ specs/004-kafka-batch-consumption/plan.md
 
 ## Running Tests
 
-The system JVM is Java 25, but Quarkus 3.15.3's Byte Buddy only supports up to Java 23. All `mvn test` commands must be run with `JAVA_HOME` pointing to the Java 21 installation:
-
-```bash
-JAVA_HOME=/opt/homebrew/Cellar/openjdk@21/21.0.8/libexec/openjdk.jdk/Contents/Home mvn test
-```
-
-Tests will fail with a Byte Buddy `Java 25 is not supported` error if run with the default JVM.
+Quarkus was upgraded to 3.37.2 (from 3.15.3) to pick up a Byte Buddy version that supports Java 25. `mvn test` now runs fine on the system default JVM (Java 25) — no `JAVA_HOME` override needed.
